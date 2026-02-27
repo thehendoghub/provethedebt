@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ProveTheDebt – Letter Generator</title>
+    <style>
+      :root {
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #0f172a;
+      }
+      body {
+        margin: 0;
+        background: #f5f7fb;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+      }
+      .app-shell {
+        width: min(960px, 100%);
+        background: #fff;
+        border-radius: 1.25rem;
+        padding: 2rem;
+        box-shadow: 0 25px 60px rgba(15, 23, 42, 0.08);
+      }
+      textarea,
+      input,
+      button {
+        width: 100%;
+        padding: 0.9rem 1rem;
+        border-radius: 0.75rem;
+        border: 1px solid #d7dfee;
+        font-size: 1rem;
+        font-family: inherit;
+      }
+      button {
+        background: #111827;
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .hidden {
+        display: none;
+      }
+      .blocked {
+        text-align: center;
+        color: #111827;
+      }
+      .blocked a {
+        color: #2563eb;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <div id="blocked" class="blocked hidden">
+        <h1>Access Locked</h1>
+        <p>
+          Please purchase access first. Once complete, you'll be redirected back with
+          a secure token.
+        </p>
+        <p>
+          <a href="/index.html#pay">Return to checkout</a>
+        </p>
+      </div>
+
+      <div id="app" class="hidden">
+        <header>
+          <p>Secure workspace</p>
+          <h1>Debt Validation Letter Generator</h1>
+        </header>
+        <form id="letter-form">
+          <label>
+            Collector / Agency Name
+            <input type="text" name="collector" required />
+          </label>
+          <label>
+            Account / Reference Number
+            <input type="text" name="account" required />
+          </label>
+          <label>
+            Facts & Notes
+            <textarea name="facts" rows="6" placeholder="Add any dates, phone calls, or documentation you have." required></textarea>
+          </label>
+          <button type="submit">Generate Letter</button>
+        </form>
+        <section id="output" class="hidden">
+          <h2>Your Draft</h2>
+          <pre id="draft"></pre>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      const ACCESS_KEY = "ptd_access";
+      const HOURS = 24;
+
+      function getAccessToken() {
+        try {
+          const raw = localStorage.getItem(ACCESS_KEY);
+          if (!raw) return null;
+          const parsed = JSON.parse(raw);
+          if (!parsed.expiresAt || Date.now() > parsed.expiresAt) {
+            localStorage.removeItem(ACCESS_KEY);
+            return null;
+          }
+          return parsed;
+        } catch (err) {
+          console.warn("Invalid token", err);
+          localStorage.removeItem(ACCESS_KEY);
+          return null;
+        }
+      }
+
+      function ensureAccess() {
+        const token = getAccessToken();
+        if (!token) {
+          document.getElementById("blocked").classList.remove("hidden");
+          return false;
+        }
+        document.getElementById("app").classList.remove("hidden");
+        return true;
+      }
+
+      ensureAccess();
+
+      const form = document.getElementById("letter-form");
+      const output = document.getElementById("output");
+      const draftEl = document.getElementById("draft");
+
+      form?.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const data = new FormData(form);
+        const collector = data.get("collector");
+        const account = data.get("account");
+        const facts = data.get("facts");
+
+        draftEl.textContent = `To: ${collector}\nAccount: ${account}\n\nThis letter is a formal request under the Fair Debt Collection Practices Act (FDCPA) that you provide proof of the debt referenced above. Please supply the original contract, accounting ledger, and chain of title. Until verification is supplied, cease all collection efforts and communications except as required by law.\n\nNotes Provided:\n${facts}\n\nSincerely,\n________________________`;
+        output.classList.remove("hidden");
+      });
+    </script>
+  </body>
+</html>
